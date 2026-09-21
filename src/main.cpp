@@ -48,6 +48,115 @@ std::string getRiskLevel(int failedAttempts) {
     }
 }
 
+void printSummary(int totalLogs, int infoCount, int warningCount, int errorCount, int suspiciousCount) {
+    std::cout << "\n --- Log Summary --- \n";
+    std::cout << "Total logs: " << totalLogs << '\n';
+    std::cout << "INFO: " << infoCount << '\n';
+    std::cout << "WARN: " << warningCount << '\n';
+    std::cout << "ERROR: " << errorCount << '\n';
+    std::cout << "Suspicious IPs: " << suspiciousCount << '\n';
+}
+
+void exportReport(
+    int totalLogs,
+    int infoCount,
+    int warningCount,
+    int errorCount,
+    int suspiciousCount,
+    const std::unordered_map<std::string, int>& failedLoginCounts
+) {
+
+    std::filesystem::create_directory("reports");
+
+    std::ofstream report("reports/report.txt");
+
+    if (!report.is_open()) {
+        std::cerr << "Could not create report file.\n";
+        return;
+    }
+
+    report << "LogLens Analysis Report\n";
+    report << "=======================\n";
+    report << "Total logs: " << totalLogs << "\n";
+    report << "INFO: " << infoCount << "\n";
+    report << "WARN: " << warningCount << "\n";
+    report << "ERROR: " << errorCount << "\n";
+    report << "Suspicious IPs: " << suspiciousCount << "\n\n";
+
+    report << "Alerts:\n";
+
+    for (const auto& pair : failedLoginCounts) {
+        if (pair.second >= 3) {
+            std::string riskLevel = getRiskLevel(pair.second);
+
+            report << "[" << riskLevel << "] IP "
+                << pair.first
+                << " had " 
+                << pair.second
+                << " failed login attempts.\n";
+        }
+    }
+    report.close();
+
+    std::cout << "\nReport saved to reports/report.txt\n";
+}
+
+void filterLogs(const std::vector<LogEntry>& entries) {
+    std::string filterChoice;
+
+    std::cout << "\nWould you like to filter logs? (y/n): ";
+    std::getline(std::cin, filterChoice);
+
+    if (filterChoice !="y" && filterChoice != "Y") {
+        return;
+    }
+
+    std::string filterType;
+    std::string filterValue;
+
+    std::cout << "Filter by severity, user, ip, or keyword: ";
+    std::getline(std::cin, filterType);
+
+    std::cout << "Enter value to filter by: ";
+    std::getline(std::cin, filterValue);
+
+    std::cout << "\n--- Filter Results ---\n";
+
+    bool found = false;
+
+    for (const auto& entry : entries) {
+        bool match = false;
+
+        std::string type = toLower(filterType);
+        std::string value = toLower(filterValue);
+
+        if (type == "severity" && toLower(entry.severity) == value) {
+            match = true;
+        }
+        else if (type == "user" && toLower(entry.user) == value) {
+            match = true;
+        }
+        else if (type == "ip" && entry.ip == filterValue) {
+            match = true;
+        }
+        else if (type == "keyword" && toLower(entry.message).find(value) != std::string::npos) {
+            match = true;
+        }
+
+        if (match) {
+            found = true;
+
+            std::cout << entry.date
+                      << " | " << entry.time
+                      << " | " << entry.severity
+                      << " | " << entry.message
+                      << '\n';
+        }
+    }
+    if (!found) {
+        std::cout << "No matching logs found.\n";
+    }
+}
 int main() {
     std::string filePath;
 
@@ -143,105 +252,12 @@ std::cout << '\n';
         }
     }
 
-    std::cout << "\n --- Log Summary --- \n";
-    std::cout << "Total logs " << totalLogs << '\n';
-    std::cout << "INFO: " << infoCount << '\n';
-    std::cout << "WARN: " << warningCount << '\n';
-    std::cout << "ERROR: " << errorCount << '\n';
-    std::cout << "Suspicious IPs: " << suspiciousCount << '\n';
+    printSummary(totalLogs, infoCount, warningCount, errorCount, suspiciousCount);
     
-    std::filesystem::create_directory("reports");
+    exportReport(totalLogs, infoCount, warningCount, errorCount, suspiciousCount, failedLoginCounts);
 
-    std::ofstream report("reports/report.txt");
+    filterLogs(entries);
 
-    if (!report.is_open()) {
-        std::cerr << "Could not create report file.\n";
-    }
-    else{
-        report << "LogLens Analysis Report\n";
-        report << "=======================\n";
-        report << "Total logs: " << totalLogs << "\n";
-        report << "INFO: " << infoCount << "\n";
-        report << "WARN: " << warningCount << "\n";
-        report << "ERROR: " << errorCount << "\n";
-        report << "Suspicious IPs: " << suspiciousCount << "\n\n";
-
-        report << "Alerts:\n";
-
-        for (const auto& pair : failedLoginCounts) {
-            if (pair.second >= 3) {
-
-                std::string riskLevel = getRiskLevel(pair.second);
-
-                report << "[" << riskLevel << "] IP "
-                    << pair.first
-                    << " had " 
-                    << pair.second
-                    << " failed login attempts.\n";
-            }
-
-
-        }
-
-        report.close();
-
-        std::cout << "\nReport saved to reports/report.txt\n";
-    }
-    std::string filterChoice;
-
-std::cout << "\nWould you like to filter logs? (y/n): ";
-std::getline(std::cin, filterChoice);
-
-if (filterChoice == "y" || filterChoice == "Y") {
-
-    std::string filterType;
-    std::string filterValue;
-
-    std::cout << "Filter by severity, user, ip, or keyword: ";
-    std::getline(std::cin, filterType);
-
-    std::cout << "Enter value to filter by: ";
-    std::getline(std::cin, filterValue);
-
-    std::cout << "\n--- Filter Results ---\n";
-
-    bool found = false;
-
-    for (const auto& entry : entries) {
-
-        bool match = false;
-
-        std::string type = toLower(filterType);
-        std::string value = toLower(filterValue);
-
-        if (type == "severity" && toLower(entry.severity) == value) {
-            match = true;
-        }
-        else if (type == "user" && toLower(entry.user) == value) {
-            match = true;
-        }
-        else if (type == "ip" && entry.ip == filterValue) {
-            match = true;
-        }
-        else if (type == "keyword" && toLower(entry.message).find(value) != std::string::npos) {
-            match = true;
-        }
-
-        if (match) {
-            found = true;
-
-            std::cout << entry.date
-                      << " | " << entry.time
-                      << " | " << entry.severity
-                      << " | " << entry.message
-                      << '\n';
-        }
-    }
-
-    if (!found) {
-        std::cout << "No matching logs found.\n";
-    }
-}
 
 file.close();
 
