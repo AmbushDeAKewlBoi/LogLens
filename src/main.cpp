@@ -192,6 +192,55 @@ void filterLogs(const std::vector<LogEntry>& entries) {
         std::cout << "No matching logs found.\n";
     }
 }
+
+LogEntry parseLogLine(const std::string& line) {
+    std::istringstream parser(line);
+
+    LogEntry entry; 
+    parser >> entry.date;
+    parser >> entry.time;
+    parser >> entry.severity;
+
+    std::getline(parser, entry.message);
+
+    if (!entry.message.empty() && entry.message[0] == ' ') {
+        entry.message.erase(0, 1);
+    }
+
+    entry.user = extractValue(entry.message, "user");
+    entry.ip = extractValue(entry.message, "ip");
+    return entry;
+}
+
+void trackFailedLogin(const LogEntry& entry, std::unordered_map<std::string, int>& failedLoginCounts) {
+    if (entry.message.find("Login failed") != std::string::npos && !entry.ip.empty()) {
+        failedLoginCounts[entry.ip]++;
+    }
+}
+
+int printSecurityAlerts(
+    const std::unordered_map<std::string, int>& failedLoginCounts
+) {
+    int suspiciousCount = 0;
+
+    std::cout << "\n--- Sec Alerts ---\n";
+
+    for (const auto& pair : failedLoginCounts) {
+        if (pair.second >= 3) {
+            suspiciousCount++;
+
+            std::string riskLevel = getRiskLevel(pair.second);
+
+            std::cout << "[" << riskLevel << "] IP "
+                      << pair.first
+                      << " had "
+                      << pair.second
+                      << " failed login attempts.\n";
+        }
+    }
+
+    return suspiciousCount;
+}
 int main() {
     std::string filePath;
 
@@ -223,35 +272,24 @@ int main() {
 
     while (std::getline(file, line)) {
         
-        std::istringstream parser(line);
-
-        LogEntry entry;
-
-        parser >> entry.date;
-        parser >> entry.time;
-        parser >> entry.severity;
+        LogEntry entry = parseLogLine(line);
         totalLogs++;
 
         if (entry.severity == "INFO") {
             infoCount++;
-        } else if (entry.severity == "WARN") {
+        }
+        else if (entry.severity == "WARN") {
             warningCount++;
-        } else if (entry.severity == "ERROR") {
+        }
+        else if (entry.severity == "ERROR") {
             errorCount++;
         }
-        std::getline(parser, entry.message);
+    
 
-        if (!entry.message.empty() && entry.message[0] == ' ') {
-            entry.message.erase(0, 1);
-        }
-
-        entry.user = extractValue(entry.message, "user");
-        entry.ip = extractValue(entry.message, "ip");
         entries.push_back(entry);
 
-        if (entry.message.find("Login failed") != std::string::npos && !entry.ip.empty()) {
-            failedLoginCounts[entry.ip]++;
-        }
+        trackFailedLogin(entry, failedLoginCounts);
+        
         std::cout << "Date: " << entry.date
                     << " | Time: " << entry.time
                     << " | Severity: " << entry.severity 
