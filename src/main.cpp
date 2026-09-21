@@ -51,13 +51,15 @@ std::string getRiskLevel(int failedAttempts) {
     }
 }
 
-void printSummary(int totalLogs, int infoCount, int warningCount, int errorCount, int suspiciousCount) {
+void printSummary(int totalLogs, int infoCount, int warningCount, int errorCount, int suspiciousIpCount, int suspiciousUserCount) {
     std::cout << "\n --- Log Summary --- \n";
     std::cout << "Total logs: " << totalLogs << '\n';
     std::cout << "INFO: " << infoCount << '\n';
     std::cout << "WARN: " << warningCount << '\n';
     std::cout << "ERROR: " << errorCount << '\n';
-    std::cout << "Suspicious IPs: " << suspiciousCount << '\n';
+    std::cout << "Suspicious IPs: " << suspiciousIpCount << '\n';
+    std::cout << "Suspicious Users: " << suspiciousUserCount << '\n';
+    std::cout << "Total Alerts: " << suspiciousIpCount + suspiciousUserCount << '\n';
 }
 
 void exportReport(
@@ -65,8 +67,10 @@ void exportReport(
     int infoCount,
     int warningCount,
     int errorCount,
-    int suspiciousCount,
-    const std::unordered_map<std::string, int>& failedLoginCounts
+    int suspiciousIpCount,
+    int suspiciousUserCount,
+    const std::unordered_map<std::string, int>& failedLoginCounts,
+    const std::unordered_map<std::string, int>& failedUserCounts
 ) {
 
     std::filesystem::create_directory("reports");
@@ -95,7 +99,9 @@ void exportReport(
     report << "INFO: " << infoCount << "\n";
     report << "WARN: " << warningCount << "\n";
     report << "ERROR: " << errorCount << "\n";
-    report << "Suspicious IPs: " << suspiciousCount << "\n\n";
+    report << "Suspicious IPs: " << suspiciousIpCount << "\n";
+    report << "Suspicious Users: " << suspiciousUserCount << "\n";
+    report << "Total Alerts: " << suspiciousIpCount + suspiciousUserCount << "\n\n";
 
     report << "Alerts:\n";
 
@@ -104,6 +110,18 @@ void exportReport(
             std::string riskLevel = getRiskLevel(pair.second);
 
             report << "[" << riskLevel << "] IP "
+                << pair.first
+                << " had " 
+                << pair.second
+                << " failed login attempts.\n";
+        }
+    }
+
+    for (const auto& pair :failedUserCounts) {
+        if (pair.second >= 3) {
+            std::string riskLevel = getRiskLevel(pair.second);
+
+            report << "[" << riskLevel << "] User "
                 << pair.first
                 << " had " 
                 << pair.second
@@ -225,28 +243,44 @@ void trackFailedLogin(const LogEntry& entry, std::unordered_map<std::string, int
 
 }
 
-int printSecurityAlerts(
-    const std::unordered_map<std::string, int>& failedLoginCounts
-) {
-    int suspiciousCount = 0;
+void printSecurityAlerts(const std::unordered_map<std::string, int>& failedLoginCounts,
+                          const std::unordered_map<std::string, int>& failedUserCounts,
+                        int& suspiciousIpCount,
+                        int& suspiciousUserCount
+                    ) {
+     suspiciousIpCount = 0;
+     suspiciousUserCount = 0;
 
-    std::cout << "\n--- Sec Alerts ---\n";
+    std::cout << "\n --- Security Alerts --- \n";
 
     for (const auto& pair : failedLoginCounts) {
-        if (pair.second >= 3) {
-            suspiciousCount++;
+        if (pair.second >=3) {
+            suspiciousIpCount++;
 
             std::string riskLevel = getRiskLevel(pair.second);
 
             std::cout << "[" << riskLevel << "] IP "
                       << pair.first
-                      << " had "
+                      << " had " 
                       << pair.second
                       << " failed login attempts.\n";
         }
     }
 
-    return suspiciousCount;
+    for (const auto& pair : failedUserCounts) {
+
+        if (pair.second >= 3) {
+            suspiciousUserCount++;
+
+            std::string riskLevel = getRiskLevel(pair.second);
+
+            std::cout << "[" << riskLevel << "] User "
+                      << pair.first
+                      << " had " 
+                      << pair.second
+                      << " failed login attempts.\n";
+        }
+    }
 }
 int main() {
     std::string filePath;
@@ -276,7 +310,8 @@ int main() {
     int infoCount = 0;
     int warningCount = 0;
     int errorCount = 0;
-    int suspiciousCount = 0;
+    int suspiciousIpCount = 0;
+    int suspiciousUserCount = 0;
 
     while (std::getline(file, line)) {
         
@@ -317,11 +352,13 @@ std::cout << '\n';
 
 
 
-    suspiciousCount = printSecurityAlerts(failedLoginCounts);
+    printSecurityAlerts(failedLoginCounts, failedUserCounts, suspiciousIpCount, suspiciousUserCount);
 
-    printSummary(totalLogs, infoCount, warningCount, errorCount, suspiciousCount);
+
+
+    printSummary(totalLogs, infoCount, warningCount, errorCount, suspiciousIpCount, suspiciousUserCount);
     
-    exportReport(totalLogs, infoCount, warningCount, errorCount, suspiciousCount, failedLoginCounts);
+    exportReport(totalLogs, infoCount, warningCount, errorCount, suspiciousIpCount, suspiciousUserCount, failedLoginCounts, failedUserCounts);
 
     filterLogs(entries);
 
