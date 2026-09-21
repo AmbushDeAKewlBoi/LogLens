@@ -4,6 +4,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <vector>
+#include <algorithm>
 
 struct LogEntry { 
     std::string date;
@@ -29,6 +30,11 @@ std::string extractValue(const std::string& text, const std::string& key) {
     }
     return text.substr(start, end - start);
 
+}
+
+std::string toLower(std::string text) {
+    std::transform(text.begin(), text.end(), text.begin(), [](unsigned char c) { return std::tolower(c); });
+    return text;
 }
 
 int main() {
@@ -167,16 +173,19 @@ if (filterChoice == "y" || filterChoice == "Y") {
 
         bool match = false;
 
-        if (filterType == "severity" && entry.severity == filterValue) {
+        std::string type = toLower(filterType);
+        std::string value = toLower(filterValue);
+
+        if (filterType == "severity" && toLower(entry.severity) == filterValue) {
             match = true;
         }
-        else if (filterType == "user" && entry.user == filterValue) {
+        else if (filterType == "user" && toLower(entry.user) == filterValue) {
             match = true;
         }
         else if (filterType == "ip" && entry.ip == filterValue) {
             match = true;
         }
-        else if (filterType == "keyword" && entry.message.find(filterValue) != std::string::npos) {
+        else if (filterType == "keyword" && toLower(entry.message).find(value) != std::string::npos) {
             match = true;
         }
 
