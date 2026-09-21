@@ -153,7 +153,7 @@ if (filterChoice == "y" || filterChoice == "Y") {
     std::string filterType;
     std::string filterValue;
 
-    std::cout << "Filter by severity, user, or ip: ";
+    std::cout << "Filter by severity, user, ip, or keyword: ";
     std::getline(std::cin, filterType);
 
     std::cout << "Enter value to filter by: ";
@@ -174,6 +174,9 @@ if (filterChoice == "y" || filterChoice == "Y") {
             match = true;
         }
         else if (filterType == "ip" && entry.ip == filterValue) {
+            match = true;
+        }
+        else if (filterType == "keyword" && entry.message.find(filterValue) != std::string::npos) {
             match = true;
         }
 
