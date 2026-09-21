@@ -212,10 +212,17 @@ LogEntry parseLogLine(const std::string& line) {
     return entry;
 }
 
-void trackFailedLogin(const LogEntry& entry, std::unordered_map<std::string, int>& failedLoginCounts) {
-    if (entry.message.find("Login failed") != std::string::npos && !entry.ip.empty()) {
-        failedLoginCounts[entry.ip]++;
+void trackFailedLogin(const LogEntry& entry, std::unordered_map<std::string, int>& failedLoginCounts, std::unordered_map<std::string, int>& failedUserCounts) {
+    if (entry.message.find("Login failed") != std::string::npos) {
+        if (!entry.ip.empty()) {
+            failedLoginCounts[entry.ip]++;
+        }
+        if (!entry.user.empty()) {
+            failedUserCounts[entry.user]++;
+        }
+
     }
+
 }
 
 int printSecurityAlerts(
@@ -262,6 +269,7 @@ int main() {
 
     std::string line;
     std::unordered_map<std::string, int> failedLoginCounts;
+    std::unordered_map<std::string, int> failedUserCounts;
     std::vector<LogEntry> entries;
 
     int totalLogs = 0;
@@ -288,7 +296,7 @@ int main() {
 
         entries.push_back(entry);
 
-        trackFailedLogin(entry, failedLoginCounts);
+        trackFailedLogin(entry, failedLoginCounts, failedUserCounts);
         
         std::cout << "Date: " << entry.date
                     << " | Time: " << entry.time
@@ -308,22 +316,8 @@ std::cout << '\n';
     }
 
 
-    std:: cout << "\n --- Sec Alerts --- \n";
 
-    for (const auto& pair : failedLoginCounts) {
-        if (pair.second >= 3) {
-            suspiciousCount++;
-            
-            std::string riskLevel = getRiskLevel(pair.second);
-
-            std::cout << "[" << riskLevel << "] IP "
-                << pair.first
-                << " had " 
-                << pair.second
-                << " failed login attempts.\n";
-        
-        }
-    }
+    suspiciousCount = printSecurityAlerts(failedLoginCounts);
 
     printSummary(totalLogs, infoCount, warningCount, errorCount, suspiciousCount);
     
