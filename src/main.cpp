@@ -31,10 +31,17 @@ std::string extractValue(const std::string& text, const std::string& key) {
 }
 
 int main() {
-    std::ifstream file("data/sample.log");
+    std::string filePath;
+
+    std::cout << "Enter log file path: ";
+    std::getline(std::cin, filePath);
+
+    std::ifstream file(filePath);
+
+
 
     if (!file.is_open()) {
-        std::cerr << "Error opening file." << std::endl;
+        std::cerr << "Error opening file: " << filePath << std::endl;
         return 1;
     }
 
