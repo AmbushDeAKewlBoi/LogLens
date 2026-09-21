@@ -6,6 +6,9 @@
 #include <vector>
 #include <algorithm>
 #include <filesystem>
+#include <chrono>
+#include <ctime>
+#include <iomanip>
 
 struct LogEntry { 
     std::string date;
@@ -68,7 +71,18 @@ void exportReport(
 
     std::filesystem::create_directory("reports");
 
-    std::ofstream report("reports/report.txt");
+    auto now = std::chrono::system_clock::now();
+    std::time_t nowTime = std::chrono::system_clock::to_time_t(now);
+
+    std::tm localTime;
+    localtime_s(&localTime, &nowTime);
+
+    std::ostringstream filenameStream;
+    filenameStream << "reports/report_"
+                   << std::put_time(&localTime, "%Y-%m-%d_%H-%M-%S")
+                   << ".txt";
+    std::ofstream report(filenameStream.str());
+
 
     if (!report.is_open()) {
         std::cerr << "Could not create report file.\n";
@@ -98,7 +112,7 @@ void exportReport(
     }
     report.close();
 
-    std::cout << "\nReport saved to reports/report.txt\n";
+    std::cout << "\nReport saved to " << filenameStream.str() << "\n";
 }
 
 void filterLogs(const std::vector<LogEntry>& entries) {
