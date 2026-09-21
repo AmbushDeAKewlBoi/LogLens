@@ -8,7 +8,27 @@ struct LogEntry {
     std::string time;
     std::string severity;
     std::string message;
+    std::string user;
+    std::string ip;
 };
+
+std::string extractValue(const std::string& text, const std::string& key) {
+    std::string target = key + "=";
+    size_t start = text.find(target);
+
+    if (start == std::string::npos) {
+        return "";
+    }
+
+    start += target.length();
+    size_t end = text.find(' ', start);
+    if (end == std::string::npos) {
+        return text.substr(start);
+    }
+    return text.substr(start, end - start);
+
+}
+
 int main() {
     std::ifstream file("data/sample.log");
 
@@ -33,11 +53,23 @@ int main() {
         if (!entry.message.empty() && entry.message[0] == ' ') {
             entry.message.erase(0, 1);
         }
+
+        entry.user = extractValue(entry.message, "user");
+        entry.ip = extractValue(entry.message, "ip");
         std::cout << "Date: " << entry.date
                     << " | Time: " << entry.time
                     << " | Severity: " << entry.severity 
-                    << " | Message: " << entry.message
-                    << '\n';
+                    << " | Message: " << entry.message;
+if (!entry.user.empty()) {
+
+    std::cout << " | User: " << entry.user;
+}
+if (!entry.ip.empty()) {
+    std::cout << " | IP: " << entry.ip;
+}
+
+std::cout << '\n';
+
 
     }
 
