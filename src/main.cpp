@@ -104,18 +104,39 @@ void exportReport(
 void filterLogs(const std::vector<LogEntry>& entries) {
     std::string filterChoice;
 
-    std::cout << "\nWould you like to filter logs? (y/n): ";
-    std::getline(std::cin, filterChoice);
+    while (true) {
+        std::cout << "\nWould you like to filter logs? (y/n):";
+        std::getline(std::cin, filterChoice);
 
-    if (filterChoice !="y" && filterChoice != "Y") {
-        return;
+        filterChoice = toLower(filterChoice);
+
+        if (filterChoice == "y"){
+            break;
+        } else if (filterChoice == "n") {
+            return;
+        } else {
+            std::cout << "Invalid choice. Please enter 'y' or 'n'.\n";
+        } 
     }
 
     std::string filterType;
     std::string filterValue;
 
-    std::cout << "Filter by severity, user, ip, or keyword: ";
-    std::getline(std::cin, filterType);
+    while (true) {
+        std::cout << "Filter by severity, user, ip, or keyword: ";
+        std::getline(std::cin, filterType);
+
+        filterType = toLower(filterType);
+
+        if (filterType == "severity" ||
+            filterType == "user" ||
+            filterType == "ip" ||
+            filterType == "keyword") {
+            break;
+        } 
+
+        std::cout << "Invalid filter type. Try again.\n";
+    }
 
     std::cout << "Enter value to filter by: ";
     std::getline(std::cin, filterValue);
