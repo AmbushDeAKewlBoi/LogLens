@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <unordered_map>
 
 struct LogEntry { 
     std::string date;
@@ -38,6 +39,7 @@ int main() {
     }
 
     std::string line;
+    std::unordered_map<std::string, int> failedLoginCounts;
 
     while (std::getline(file, line)) {
         
@@ -56,6 +58,10 @@ int main() {
 
         entry.user = extractValue(entry.message, "user");
         entry.ip = extractValue(entry.message, "ip");
+
+        if (entry.message.find("Login failed") != std::string::npos && !entry.ip.empty()) {
+            failedLoginCounts[entry.ip]++;
+        }
         std::cout << "Date: " << entry.date
                     << " | Time: " << entry.time
                     << " | Severity: " << entry.severity 
@@ -73,6 +79,18 @@ std::cout << '\n';
 
     }
 
+
+    std:: cout << "\n --- Sec Alerts --- \n";
+
+    for (const auto& pair : failedLoginCounts) {
+        if (pair.second >= 3) {
+            std::cout << "[SUSSY] IP "
+            << pair.first
+            << " had "
+            << pair.second
+            << " failed login attempts. \n";
+        }
+    }
     file.close();
 
     return 0;
