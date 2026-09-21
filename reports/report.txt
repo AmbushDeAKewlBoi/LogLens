@@ -1,0 +1,10 @@
+LogLens Analysis Report
+=======================
+Total logs: 6
+INFO: 2
+WARN: 3
+ERROR: 1
+Suspicious IPs: 1
+
+Alerts:
+[LOW] IP 203.0.113.42 had 3 failed login attempts.

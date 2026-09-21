@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 #include <algorithm>
+#include <filesystem>
 
 struct LogEntry { 
     std::string date;
@@ -149,6 +150,53 @@ std::cout << '\n';
     std::cout << "ERROR: " << errorCount << '\n';
     std::cout << "Suspicious IPs: " << suspiciousCount << '\n';
     
+    std::filesystem::create_directory("reports");
+
+    std::ofstream report("reports/report.txt");
+
+    if (!report.is_open()) {
+        std::cerr << "Could not create report file.\n";
+    }
+    else{
+        report << "LogLens Analysis Report\n";
+        report << "=======================\n";
+        report << "Total logs: " << totalLogs << "\n";
+        report << "INFO: " << infoCount << "\n";
+        report << "WARN: " << warningCount << "\n";
+        report << "ERROR: " << errorCount << "\n";
+        report << "Suspicious IPs: " << suspiciousCount << "\n\n";
+
+        report << "Alerts:\n";
+
+        for (const auto& pair : failedLoginCounts) {
+            if (pair.second >= 3) {
+
+                std::string riskLevel;
+
+                if (pair.second >= 10) {
+                    riskLevel = "HIGH";
+                }
+                else if  (pair.second >= 5) {
+                    riskLevel = "MEDIUM";
+                }
+                else {
+                    riskLevel = "LOW";
+                }
+
+                report << "[" << riskLevel << "] IP "
+                    << pair.first
+                    << " had " 
+                    << pair.second
+                    << " failed login attempts.\n";
+            }
+
+
+        }
+
+        report.close();
+
+        std::cout << "\nReport saved to reports/report.txt\n";
+    }
     std::string filterChoice;
 
 std::cout << "\nWould you like to filter logs? (y/n): ";
