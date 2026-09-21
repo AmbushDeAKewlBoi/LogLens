@@ -41,6 +41,12 @@ int main() {
     std::string line;
     std::unordered_map<std::string, int> failedLoginCounts;
 
+    int totalLogs = 0;
+    int infoCount = 0;
+    int warningCount = 0;
+    int errorCount = 0;
+    int suspiciousCount = 0;
+
     while (std::getline(file, line)) {
         
         std::istringstream parser(line);
@@ -50,6 +56,15 @@ int main() {
         parser >> entry.date;
         parser >> entry.time;
         parser >> entry.severity;
+        totalLogs++;
+
+        if (entry.severity == "INFO") {
+            infoCount++;
+        } else if (entry.severity == "WARNING") {
+            warningCount++;
+        } else if (entry.severity == "ERROR") {
+            errorCount++;
+        }
         std::getline(parser, entry.message);
 
         if (!entry.message.empty() && entry.message[0] == ' ') {
@@ -84,13 +99,35 @@ std::cout << '\n';
 
     for (const auto& pair : failedLoginCounts) {
         if (pair.second >= 3) {
-            std::cout << "[SUSSY] IP "
-            << pair.first
-            << " had "
-            << pair.second
-            << " failed login attempts. \n";
+            suspiciousCount++;
+            
+            std::string riskLevel;
+
+            if (pair.second >= 10) {
+                riskLevel = "HIGH";
+            }
+            else if  (pair.second >= 5) {
+                riskLevel = "MEDIUM";
+            }
+            else {
+                riskLevel = "LOW";
+            }
+
+            std::cout << "[" << riskLevel << "] IP "
+                << pair.first
+                << " had " 
+                << pair.second
+                << " failed login attempts.\n";
+        
         }
     }
+
+    std::cout << "\n --- Log Summary --- \n";
+    std::cout << "Total logs " << totalLogs << '\n';
+    std::cout << "INFO: " << infoCount << '\n';
+    std::cout << "WARNING: " << warningCount << '\n';
+    std::cout << "ERROR: " << errorCount << '\n';
+    std::cout << "Suspicious IPs: " << suspiciousCount << '\n';
     file.close();
 
     return 0;
