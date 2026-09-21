@@ -38,6 +38,16 @@ std::string toLower(std::string text) {
     return text;
 }
 
+std::string getRiskLevel(int failedAttempts) {
+    if (failedAttempts >= 10) {
+        return "HIGH";
+    } else if (failedAttempts >= 5) {
+        return "MEDIUM";
+    } else {
+        return "LOW";
+    }
+}
+
 int main() {
     std::string filePath;
 
@@ -122,17 +132,7 @@ std::cout << '\n';
         if (pair.second >= 3) {
             suspiciousCount++;
             
-            std::string riskLevel;
-
-            if (pair.second >= 10) {
-                riskLevel = "HIGH";
-            }
-            else if  (pair.second >= 5) {
-                riskLevel = "MEDIUM";
-            }
-            else {
-                riskLevel = "LOW";
-            }
+            std::string riskLevel = getRiskLevel(pair.second);
 
             std::cout << "[" << riskLevel << "] IP "
                 << pair.first
@@ -171,17 +171,7 @@ std::cout << '\n';
         for (const auto& pair : failedLoginCounts) {
             if (pair.second >= 3) {
 
-                std::string riskLevel;
-
-                if (pair.second >= 10) {
-                    riskLevel = "HIGH";
-                }
-                else if  (pair.second >= 5) {
-                    riskLevel = "MEDIUM";
-                }
-                else {
-                    riskLevel = "LOW";
-                }
+                std::string riskLevel = getRiskLevel(pair.second);
 
                 report << "[" << riskLevel << "] IP "
                     << pair.first
@@ -224,16 +214,16 @@ if (filterChoice == "y" || filterChoice == "Y") {
         std::string type = toLower(filterType);
         std::string value = toLower(filterValue);
 
-        if (filterType == "severity" && toLower(entry.severity) == filterValue) {
+        if (type == "severity" && toLower(entry.severity) == value) {
             match = true;
         }
-        else if (filterType == "user" && toLower(entry.user) == filterValue) {
+        else if (type == "user" && toLower(entry.user) == value) {
             match = true;
         }
-        else if (filterType == "ip" && entry.ip == filterValue) {
+        else if (type == "ip" && entry.ip == filterValue) {
             match = true;
         }
-        else if (filterType == "keyword" && toLower(entry.message).find(value) != std::string::npos) {
+        else if (type == "keyword" && toLower(entry.message).find(value) != std::string::npos) {
             match = true;
         }
 
