@@ -3,6 +3,7 @@
 #include <string>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 struct LogEntry { 
     std::string date;
@@ -33,8 +34,12 @@ std::string extractValue(const std::string& text, const std::string& key) {
 int main() {
     std::string filePath;
 
-    std::cout << "Enter log file path: ";
+    std::cout << "Enter log file path: [default: data/sample.log]";
     std::getline(std::cin, filePath);
+
+    if (filePath.empty()) {
+        filePath = "data/sample.log";
+    }
 
     std::ifstream file(filePath);
 
@@ -47,6 +52,7 @@ int main() {
 
     std::string line;
     std::unordered_map<std::string, int> failedLoginCounts;
+    std::vector<LogEntry> entries;
 
     int totalLogs = 0;
     int infoCount = 0;
@@ -67,7 +73,7 @@ int main() {
 
         if (entry.severity == "INFO") {
             infoCount++;
-        } else if (entry.severity == "WARNING") {
+        } else if (entry.severity == "WARN") {
             warningCount++;
         } else if (entry.severity == "ERROR") {
             errorCount++;
@@ -80,6 +86,7 @@ int main() {
 
         entry.user = extractValue(entry.message, "user");
         entry.ip = extractValue(entry.message, "ip");
+        entries.push_back(entry);
 
         if (entry.message.find("Login failed") != std::string::npos && !entry.ip.empty()) {
             failedLoginCounts[entry.ip]++;
@@ -132,10 +139,61 @@ std::cout << '\n';
     std::cout << "\n --- Log Summary --- \n";
     std::cout << "Total logs " << totalLogs << '\n';
     std::cout << "INFO: " << infoCount << '\n';
-    std::cout << "WARNING: " << warningCount << '\n';
+    std::cout << "WARN: " << warningCount << '\n';
     std::cout << "ERROR: " << errorCount << '\n';
     std::cout << "Suspicious IPs: " << suspiciousCount << '\n';
-    file.close();
+    
+    std::string filterChoice;
 
-    return 0;
+std::cout << "\nWould you like to filter logs? (y/n): ";
+std::getline(std::cin, filterChoice);
+
+if (filterChoice == "y" || filterChoice == "Y") {
+
+    std::string filterType;
+    std::string filterValue;
+
+    std::cout << "Filter by severity, user, or ip: ";
+    std::getline(std::cin, filterType);
+
+    std::cout << "Enter value to filter by: ";
+    std::getline(std::cin, filterValue);
+
+    std::cout << "\n--- Filter Results ---\n";
+
+    bool found = false;
+
+    for (const auto& entry : entries) {
+
+        bool match = false;
+
+        if (filterType == "severity" && entry.severity == filterValue) {
+            match = true;
+        }
+        else if (filterType == "user" && entry.user == filterValue) {
+            match = true;
+        }
+        else if (filterType == "ip" && entry.ip == filterValue) {
+            match = true;
+        }
+
+        if (match) {
+            found = true;
+
+            std::cout << entry.date
+                      << " | " << entry.time
+                      << " | " << entry.severity
+                      << " | " << entry.message
+                      << '\n';
+        }
+    }
+
+    if (!found) {
+        std::cout << "No matching logs found.\n";
+    }
+}
+
+file.close();
+
+return 0;
 }
