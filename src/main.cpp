@@ -51,7 +51,16 @@ std::string getRiskLevel(int failedAttempts) {
     }
 }
 
-void printSummary(int totalLogs, int infoCount, int warningCount, int errorCount, int suspiciousIpCount, int suspiciousUserCount) {
+void printSummary(
+    int totalLogs,
+    int infoCount,
+    int warningCount,
+    int errorCount,
+    int suspiciousIpCount,
+    int suspiciousUserCount,
+    int invalidLineCount,
+    bool highErrorRate
+) {
     std::cout << "\n --- Log Summary --- \n";
     std::cout << "Total logs: " << totalLogs << '\n';
     std::cout << "INFO: " << infoCount << '\n';
@@ -59,7 +68,8 @@ void printSummary(int totalLogs, int infoCount, int warningCount, int errorCount
     std::cout << "ERROR: " << errorCount << '\n';
     std::cout << "Suspicious IPs: " << suspiciousIpCount << '\n';
     std::cout << "Suspicious Users: " << suspiciousUserCount << '\n';
-    std::cout << "Total Alerts: " << suspiciousIpCount + suspiciousUserCount << '\n';
+    std::cout << "Total Alerts: " << suspiciousIpCount + suspiciousUserCount +(highErrorRate ? 1 : 0) << '\n';
+    std::cout << "Invalid lines skipped: " << invalidLineCount << '\n';
 }
 
 void exportReport(
@@ -69,6 +79,8 @@ void exportReport(
     int errorCount,
     int suspiciousIpCount,
     int suspiciousUserCount,
+    int invalidCount,
+    bool highErrorRate,
     const std::unordered_map<std::string, int>& failedLoginCounts,
     const std::unordered_map<std::string, int>& failedUserCounts
 ) {
@@ -101,7 +113,8 @@ void exportReport(
     report << "ERROR: " << errorCount << "\n";
     report << "Suspicious IPs: " << suspiciousIpCount << "\n";
     report << "Suspicious Users: " << suspiciousUserCount << "\n";
-    report << "Total Alerts: " << suspiciousIpCount + suspiciousUserCount << "\n\n";
+    report << "Total Alerts: " << suspiciousIpCount + suspiciousUserCount + (highErrorRate ? 1 : 0) << "\n\n";
+    report << "Invalid lines skipped: " << invalidCount << "\n\n";
 
     report << "Alerts:\n";
 
@@ -128,6 +141,19 @@ void exportReport(
                 << " failed login attempts.\n";
         }
     }
+    if (highErrorRate) {
+        double errorPercent = (static_cast<double>(errorCount) / totalLogs) * 100;
+        report << "[MEDIUM] High error rate detected: "
+               << errorCount
+               << " of "
+               << totalLogs
+               << " logs are ERROR ("
+               << errorPercent
+               << "%)\n";
+    }
+
+
+
     report.close();
 
     std::cout << "\nReport saved to " << filenameStream.str() << "\n";
@@ -282,6 +308,26 @@ void printSecurityAlerts(const std::unordered_map<std::string, int>& failedLogin
         }
     }
 }
+
+bool isValidLogLine(const LogEntry& entry) {
+    if (entry.date.length() != 10 || entry.date[4] != '-' || entry.date[7] != '-') {
+        return false;
+    }
+    if (entry.time.length() != 8 || entry.time[2] != ':' || entry.time[5] != ':') {
+        return false;
+    }
+    return true;
+}
+
+bool hasHighErrorRate(int totalLogs, int errorCount) {
+    if (totalLogs == 0) {
+        return false;
+    }
+
+    double errorRate = static_cast<double>(errorCount) / totalLogs;
+    return errorCount >= 3 && errorRate >= 0.30;
+}
+
 int main() {
     std::string filePath;
 
@@ -308,6 +354,7 @@ int main() {
 
     int totalLogs = 0;
     int infoCount = 0;
+    int invalidCount = 0;
     int warningCount = 0;
     int errorCount = 0;
     int suspiciousIpCount = 0;
@@ -316,6 +363,11 @@ int main() {
     while (std::getline(file, line)) {
         
         LogEntry entry = parseLogLine(line);
+        if (!isValidLogLine(entry)) {
+            invalidCount++;
+            std::cout << "[Skipped]Invalid log entry: " << line << '\n';
+            continue;
+        }
         totalLogs++;
 
         if (entry.severity == "INFO") {
@@ -354,13 +406,45 @@ std::cout << '\n';
 
     printSecurityAlerts(failedLoginCounts, failedUserCounts, suspiciousIpCount, suspiciousUserCount);
 
+    bool highErrorRate = hasHighErrorRate(totalLogs, errorCount);
+    if (highErrorRate) {
+        double errorPercent = (static_cast<double>(errorCount) / totalLogs) * 100;
+        std::cout << "\n[ALERT] High error rate detected: "
+                    << errorCount
+                        << " of "
+                        << totalLogs
+                        << " logs are ERROR ("
+                        << errorPercent
+                        << "%)\n";
+    }
 
 
-    printSummary(totalLogs, infoCount, warningCount, errorCount, suspiciousIpCount, suspiciousUserCount);
+    printSummary(
+        totalLogs,
+        infoCount,
+        warningCount,
+        errorCount,
+        suspiciousIpCount,
+        suspiciousUserCount,
+        invalidCount,
+        highErrorRate);
     
-    exportReport(totalLogs, infoCount, warningCount, errorCount, suspiciousIpCount, suspiciousUserCount, failedLoginCounts, failedUserCounts);
+    exportReport(
+        totalLogs,
+        infoCount,
+        warningCount,
+        errorCount,
+        suspiciousIpCount,
+        suspiciousUserCount,
+        invalidCount,
+        highErrorRate,
+        failedLoginCounts,
+        failedUserCounts
+    );
 
     filterLogs(entries);
+
+
 
 
 file.close();
