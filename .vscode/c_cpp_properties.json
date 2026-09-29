@@ -1,0 +1,22 @@
+﻿{
+    "configurations": [
+        {
+            "name": "Win32",
+            "includePath": [
+                "L:/Stardance/LogLens/src/gui",
+                "L:/Stardance/LogLens/include",
+                "L:/Stardance/LogLens/modules",
+                "L:/Stardance/LogLens/src",
+                "C:/libs/imgui",
+                "C:/libs/imgui/backends",
+                "C:/libs/imgui/examples/libs/gl3w",
+                "C:/vcpkg/installed/x64-windows/include"
+            ],
+            "defines": [],
+            "cStandard": "c17",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "windows-gcc-x64"
+        }
+    ],
+    "version": 4
+}
